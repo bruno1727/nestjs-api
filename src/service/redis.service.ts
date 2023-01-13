@@ -29,10 +29,18 @@ export class RedisService {
     return this.conn.expire(key, seconds);
   }
 
-  async incr(key: string, expireWhenNew?: number): Promise<any> {
-    if (!expireWhenNew) return this.conn.incr(key);
+  async incr(
+    key: string,
+    expireWhenNew?: number,
+    incrementBy = 1,
+  ): Promise<any> {
+    if (!expireWhenNew) return this.conn.incrby(key, incrementBy);
     return (
-      await this.conn.multi().incr(key).expire(key, expireWhenNew, 'NX').exec()
+      await this.conn
+        .multi()
+        .incrby(key, incrementBy)
+        .expire(key, expireWhenNew, 'NX')
+        .exec()
     )[0][1];
   }
 

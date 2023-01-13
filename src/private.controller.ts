@@ -1,8 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthGuard } from './guards/auth.guard';
+import { TokenRateLimiterGuard } from './guards/tokenRateLimiter.guard';
 
 @Controller('hello')
-@UseGuards(AuthGuard)
+@UseGuards(TokenRateLimiterGuard, AuthGuard)
 export class PrivateController {
   @Get()
   async getHello(): Promise<string> {
