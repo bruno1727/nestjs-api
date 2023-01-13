@@ -10,15 +10,16 @@ import { RedisService } from '../service/redis.service';
 
 @Injectable()
 export class RateLimiterMiddleware implements NestMiddleware {
-  private tokenLimit = 500;
-  private ipAddressLimit = 50;
+  private tokenLimit = 5;
+  private ipAddressLimit = 5;
   constructor(public redisService: RedisService) {}
-  use(req: Request, res: Response, next: NextFunction) {
+  async use(req: Request, res: Response, next: NextFunction) {
     if (extractToken(req).length > 0) {
       if (
-        this.redisService.getCountToken(extractToken(req)) <= this.tokenLimit
+        (await this.redisService.getCountToken(extractToken(req))) <=
+        this.tokenLimit
       ) {
-        this.redisService.addCountToken(extractToken(req));
+        await this.redisService.addCountToken(extractToken(req));
       } else {
         throw new HttpException(
           'exceed count token',
@@ -27,8 +28,9 @@ export class RateLimiterMiddleware implements NestMiddleware {
       }
     }
 
-    if (this.redisService.getCountIpAddress(req.ip) <= this.ipAddressLimit) {
-      this.redisService.addCountIpAddress(req.ip);
+    const countIp = await this.redisService.getCountIpAddress(req.ip);
+    if (countIp <= this.ipAddressLimit) {
+      await this.redisService.addCountIpAddress(req.ip);
     } else {
       throw new HttpException(
         'exceed count ip address',
