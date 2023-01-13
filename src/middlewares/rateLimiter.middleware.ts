@@ -4,22 +4,23 @@ import {
   Injectable,
   NestMiddleware,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
+import { RateLimitService } from 'src/service/rateLimit.service';
 import extractToken from '../helpers/extractToken';
-import { RedisService } from '../service/redis.service';
 
 @Injectable()
 export class RateLimiterMiddleware implements NestMiddleware {
-  private tokenLimit = 5;
-  private ipAddressLimit = 5;
-  constructor(public redisService: RedisService) {}
+  constructor(
+    public rateLimitService: RateLimitService,
+    public configService: ConfigService,
+  ) {}
   async use(req: Request, res: Response, next: NextFunction) {
-    if (extractToken(req).length > 0) {
-      if (
-        (await this.redisService.getCountToken(extractToken(req))) <=
-        this.tokenLimit
-      ) {
-        await this.redisService.addCountToken(extractToken(req));
+    const tokenLimit = this.configService.get<number>('RATE_LIMIT_TOKEN');
+    const token = extractToken(req);
+    if (token.length > 0) {
+      if ((await this.rateLimitService.getCountToken(token)) <= tokenLimit) {
+        await this.rateLimitService.addCountToken(token);
       } else {
         throw new HttpException(
           'exceed count token',
@@ -28,9 +29,10 @@ export class RateLimiterMiddleware implements NestMiddleware {
       }
     }
 
-    const countIp = await this.redisService.getCountIpAddress(req.ip);
-    if (countIp <= this.ipAddressLimit) {
-      await this.redisService.addCountIpAddress(req.ip);
+    const ipAddressLimit = this.configService.get<number>('RATE_LIMIT_IP');
+    const countIp = await this.rateLimitService.getCountIpAddress(req.ip);
+    if (countIp <= ipAddressLimit) {
+      await this.rateLimitService.addCountIpAddress(req.ip);
     } else {
       throw new HttpException(
         'exceed count ip address',
