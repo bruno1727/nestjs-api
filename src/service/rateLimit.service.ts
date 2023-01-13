@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { RateLimitException } from 'src/exceptions/rateLimit.exception';
 import { RedisService } from './redis.service';
 
 @Injectable()
@@ -15,5 +16,13 @@ export class RateLimitService {
 
   async getTimeLeft(key: string): Promise<number> {
     return (await this.redisService.ttl(key)) || 0;
+  }
+
+  async incrementAndVerifyLimit(limit: number, key: string) {
+    if ((await this.getCount(key)) < limit) {
+      await this.incrementCount(key);
+    } else {
+      throw new RateLimitException(await this.getTimeLeft(key));
+    }
   }
 }

@@ -1,9 +1,13 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthGuard } from './guards/auth.guard';
-import { RateLimiterMiddleware } from './middlewares/rateLimiter.middleware';
+import { IpAddressRateLimiterMiddleware } from './middlewares/rateLimiter/ipAddress.middleware';
+import { TokenRateLimiterMiddleware } from './middlewares/rateLimiter/token.middleware';
 import { PrivateController } from './private.controller';
-import { PublicController as PublicAppController } from './public.controller';
+import {
+  PublicController as PublicAppController,
+  PublicController,
+} from './public.controller';
 import { AuthService } from './service/auth.service';
 import { RateLimitService } from './service/rateLimit.service';
 import { RedisService } from './service/redis.service';
@@ -12,7 +16,8 @@ import { RedisService } from './service/redis.service';
   imports: [ConfigModule.forRoot()],
   controllers: [PrivateController, PublicAppController],
   providers: [
-    RateLimiterMiddleware,
+    IpAddressRateLimiterMiddleware,
+    TokenRateLimiterMiddleware,
     RedisService,
     AuthService,
     AuthGuard,
@@ -22,6 +27,10 @@ import { RedisService } from './service/redis.service';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RateLimiterMiddleware).forRoutes('*');
+    consumer
+      .apply(IpAddressRateLimiterMiddleware)
+      .forRoutes(PublicController)
+      .apply(TokenRateLimiterMiddleware)
+      .forRoutes(PrivateController);
   }
 }
