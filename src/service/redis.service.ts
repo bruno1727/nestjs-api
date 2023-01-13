@@ -25,7 +25,12 @@ export class RedisService {
     return this.conn.expire(key, seconds);
   }
 
-  async incr(key: string) {
-    return this.conn.incr(key);
+  async incr(key: string, expireWhenNew?: number) {
+    if (!expireWhenNew) return this.conn.incr(key);
+    return this.conn.multi().incr(key).expire(key, expireWhenNew, 'NX').exec();
+  }
+
+  async ttl(key: string): Promise<number> {
+    return this.conn.ttl(key);
   }
 }

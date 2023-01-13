@@ -5,19 +5,15 @@ import { RedisService } from './redis.service';
 export class RateLimitService {
   constructor(public redisService: RedisService) {}
 
-  async getCountToken(token: string): Promise<number> {
-    return Number((await this.redisService.get(token)) || 0);
+  async getCount(key: string): Promise<number> {
+    return parseInt(await this.redisService.get(key)) || 0;
   }
 
-  async addCountToken(token: string) {
-    await this.redisService.incr(token);
+  async incrementCount(key: string) {
+    await this.redisService.incr(key, 10);
   }
 
-  async addCountIpAddress(ipAddress: string) {
-    await this.redisService.incr(ipAddress);
-  }
-
-  async getCountIpAddress(ipAddress: string): Promise<number> {
-    return Number((await this.redisService.get(ipAddress)) || 0);
+  async getTimeLeft(key: string): Promise<number> {
+    return (await this.redisService.ttl(key)) || 0;
   }
 }

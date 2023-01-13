@@ -19,23 +19,27 @@ export class RateLimiterMiddleware implements NestMiddleware {
     const tokenLimit = this.configService.get<number>('RATE_LIMIT_TOKEN');
     const token = extractToken(req);
     if (token.length > 0) {
-      if ((await this.rateLimitService.getCountToken(token)) <= tokenLimit) {
-        await this.rateLimitService.addCountToken(token);
+      if ((await this.rateLimitService.getCount(token)) <= tokenLimit) {
+        await this.rateLimitService.incrementCount(token);
       } else {
         throw new HttpException(
-          'exceed count token',
+          `exceed limit requests for that token, wait ${await this.rateLimitService.getTimeLeft(
+            req.ip,
+          )}s for the next request!`,
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
     }
 
     const ipAddressLimit = this.configService.get<number>('RATE_LIMIT_IP');
-    const countIp = await this.rateLimitService.getCountIpAddress(req.ip);
+    const countIp = await this.rateLimitService.getCount(req.ip);
     if (countIp <= ipAddressLimit) {
-      await this.rateLimitService.addCountIpAddress(req.ip);
+      await this.rateLimitService.incrementCount(req.ip);
     } else {
       throw new HttpException(
-        'exceed count ip address',
+        `exceed limit requests for that ip address, wait ${await this.rateLimitService.getTimeLeft(
+          req.ip,
+        )}s for the next request!`,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
