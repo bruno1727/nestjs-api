@@ -1,3 +1,5 @@
+API with a request limiter, using Nest.js and Redis
+
 # Requirements
 This application require redis-server running on localhost:6379 (can be configured)
 
